@@ -1,10 +1,9 @@
 import { HttpService, Injectable, OnModuleInit } from '@nestjs/common';
-import { AxiosResponse } from 'axios';
-import { response } from 'express';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 
-
+import { Joke, JokeDocument } from './JokesSchema'
+import { CreateJokeDto } from './Joke.dto'
 const TelegramBot = require('node-telegram-bot-api');
 const token = '1771989856:AAFBw2N4TY_K5tVfkAbn-p5EI4_lfBauzlM'//move to config
 const bot = new TelegramBot(token, { polling: true });
@@ -13,7 +12,7 @@ bot.setMyCommands([
   {command: '/start', description: 'Start app'},
   {command: '/randomjoke', description: 'Show random joke'},
   {command: '/randomjokebycategory', description: 'Show ramdom jokes by category'},
-  {command: '/history', description: 'history jokes'}
+  {command: '/historyyourjokes', description: 'history jokes'}
 ])
 //move to another file
 const ButtonOptions =  {
@@ -21,28 +20,17 @@ const ButtonOptions =  {
       inline_keyboard: [
           [{text: 'random joke', callback_data: '/randomjoke'}],
           [{text: 'random joke by category', callback_data: '/randomjokebycategory'}],
-          [{text: 'history', callback_data: '/history'}],
+          [{text: 'history', callback_data: '/historyyourjokes'}],
       ]
   })
 }
 
 @Injectable()
  export class BotService implements OnModuleInit {
-  constructor(private httpService: HttpService) {}
-
-  /*callHttp() {
-    return this.http.get(this.DATA_URL).pipe(
-      map((axiosResponse: AxiosResponse) => {
-        retrun axiosResponse.data;
-      })
-    );*/
-
-  async getCategory (){
-    return await this.httpService.get('https://api.chucknorris.io/jokes/categories')
-    .pipe(map((axiosResponse: AxiosResponse) => {
-      return axiosResponse.data;
-    }))
-  }
+  constructor(
+    private httpService: HttpService,
+    @InjectModel(Joke.name) private jokeModel: Model<JokeDocument>,
+  ) {}
 
   onModuleInit() {
     this.botMessage();
@@ -60,13 +48,26 @@ const ButtonOptions =  {
     bot.on('callback_query', async msg => {
 
       if(msg.data === '/randomjoke'){
-        await this.httpService.get('https://api.chucknorris.io/jokes/random').subscribe((response) => {
-          const data = response.data
+        await this.httpService.get('https://api.chucknorris.io/jokes/random').subscribe(async (response) => {
+          const data: CreateJokeDto = response.data
+          data.TelegramUserID = msg.from.id
+          
+          await new this.jokeModel(data).save();
           return bot.sendMessage(msg.message.chat.id, data.value, ButtonOptions)
         });
         return
       }
-      
+      ///////
+      //history
+      if(msg.data === '/historyyourjokes'){
+        const data = await this.jokeModel.find({TelegramUserID: msg.from.id}).limit(10).sort({_id: -1})
+        let ArrayHistory = '';
+        for (let i = 0; i < data.length; i++){
+          ArrayHistory = ArrayHistory + `${i + 1} ` + data[i].value + '\n'
+        }
+        return await bot.sendMessage(msg.message.chat.id, ArrayHistory.toString(), ButtonOptions)
+      }
+
       // generate buttons with categories
       if(msg.data === '/randomjokebycategory'){
         await this.httpService.get('https://api.chucknorris.io/jokes/categories')
@@ -82,7 +83,6 @@ const ButtonOptions =  {
             inline_keyboard
           })
           }
-
           return bot.sendMessage(msg.message.chat.id, "Choose category", CategoryOptions)
         });
         return
@@ -96,8 +96,10 @@ const ButtonOptions =  {
           const str = msg.data.slice(1)
           if(data.includes(str)){
             await this.httpService.get(`https://api.chucknorris.io/jokes/random?category=${str}`)
-            .subscribe(response => {
-              const data = response.data
+            .subscribe(async response => {
+              const data: CreateJokeDto = response.data
+              data.TelegramUserID = msg.from.id
+              await new this.jokeModel(data).save();
               return bot.sendMessage(msg.message.chat.id, data.value, ButtonOptions)
             });
             return
@@ -108,12 +110,7 @@ const ButtonOptions =  {
       } catch (error) {
         console.log(error)
       }
-      //////////
-      //history
-      if(msg.text === '/history'){
-        //have to create collection for save jokes
-        return await bot.sendMessage(msg.chat.id, 'history')
-      }      
+          
       return bot.sendMessage(msg.message.chat.id,'i don`t understund you', ButtonOptions)
     })
   }
