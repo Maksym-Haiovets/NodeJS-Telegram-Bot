@@ -1,12 +1,13 @@
-import { HttpModule, HttpService, Module } from '@nestjs/common';
+import { HttpModule, Module } from '@nestjs/common';
 import { BotService } from './app.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Joke, JokeSchema } from './JokesSchema';
+import { URI } from './constants'
 
 @Module({
   imports: [
     HttpModule,
-    MongooseModule.forRoot('mongodb+srv://admin:admin@cluster0.vxapw.mongodb.net/DB?retryWrites=true&w=majority'),
+    MongooseModule.forRoot(URI),
     MongooseModule.forFeature([{ name: Joke.name, schema: JokeSchema }])
   ],
   controllers: [],
