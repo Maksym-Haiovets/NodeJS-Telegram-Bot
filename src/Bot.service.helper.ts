@@ -1,7 +1,7 @@
 import { HttpService, Injectable } from '@nestjs/common';
 
 @Injectable()
-export class BotSrviceHelper {
+export class BotServiceHelper {
     constructor( private httpService: HttpService ) {}
 
     async randomJoke () {

@@ -1,11 +1,11 @@
-import { HttpService, Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
 import { Joke, JokeDocument } from './JokesSchema'
 import { CreateJokeDto } from './Joke.dto'
 import { token, ButtonOptions } from './constants'
-import { BotSrviceHelper } from './app.service.helper'
+import { BotServiceHelper } from './Bot.service.helper'
 
 const TelegramBot = require('node-telegram-bot-api');
 const bot = new TelegramBot(token, { polling: true });
@@ -13,15 +13,14 @@ const bot = new TelegramBot(token, { polling: true });
 bot.setMyCommands([
   {command: '/start', description: 'Start app'},
   {command: '/randomjoke', description: 'Show random joke'},
-  {command: '/randomjokebycategory', description: 'Show ramdom jokes by category'},
-  {command: '/historyyourjokes', description: 'history jokes'}
+  {command: '/generatebuttonscategories', description: 'Show categories'},
+  {command: '/historyyourjokes', description: 'history your jokes'}
 ])
 
 @Injectable()
  export class BotService implements OnModuleInit {
   constructor(
-    private readonly httpService: HttpService,
-    private readonly botSrviceHelper: BotSrviceHelper,
+    private readonly botSrviceHelper: BotServiceHelper,
     @InjectModel(Joke.name) private jokeModel: Model<JokeDocument>,
   ) {}
   
@@ -51,7 +50,7 @@ bot.setMyCommands([
       }
       
 
-      if(msg.data === '/randomjokebycategory'){
+      if(msg.data === '/generatebuttonscategories'){
         const CategoryOptions = await this.botSrviceHelper.generateButtonsWithCategories()//
         return bot.sendMessage(msg.message.chat.id, "Choose category", CategoryOptions)
       }
