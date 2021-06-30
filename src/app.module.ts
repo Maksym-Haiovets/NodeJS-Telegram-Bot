@@ -1,5 +1,6 @@
 import { HttpModule, Module } from '@nestjs/common';
 import { BotService } from './app.service';
+import { BotSrviceHelper } from './app.service.helper'
 import { MongooseModule } from '@nestjs/mongoose';
 import { Joke, JokeSchema } from './JokesSchema';
 import { URI } from './constants'
@@ -11,6 +12,6 @@ import { URI } from './constants'
     MongooseModule.forFeature([{ name: Joke.name, schema: JokeSchema }])
   ],
   controllers: [],
-  providers: [BotService],
+  providers: [BotService, BotSrviceHelper],
 })
 export class AppModule {}
