@@ -70,7 +70,7 @@ bot.setMyCommands([
           const inline_keyboard = []
   
           for (let i = 0; i < data.length; i++){
-            inline_keyboard.push([{text: data[i], callback_data: `/${data[i]}`}])
+            inline_keyboard.push([{text: data[i], callback_data: `/${data[i]}`}])//
           }
           // make buttons
           const CategoryOptions = {
@@ -84,28 +84,18 @@ bot.setMyCommands([
       }
       //////////////////
       // generate random joke by chose category
-      try {
-        await this.httpService.get('https://api.chucknorris.io/jokes/categories')
-        .subscribe(async (response) => {
-          const jokes = response.data // get all categories
-          const choseJoke = msg.data.slice(1)
-          if(jokes.includes(choseJoke)){
-            await this.httpService.get(`https://api.chucknorris.io/jokes/random?category=${choseJoke}`)// get random joke by category
-            .subscribe(async response => {
-              //save joke in DB
-              const data: CreateJokeDto = response.data
-              data.TelegramUserID = msg.from.id
-              await new this.jokeModel(data).save();
+      if(msg.message.text === 'Choose category'){
+        await this.httpService.get(`https://api.chucknorris.io/jokes/random?category=${msg.data.slice(1)}`)// get random joke by category
+          .subscribe(async response => {
+            //save joke in DB
+            const data: CreateJokeDto = response.data
+            data.TelegramUserID = msg.from.id
+            await new this.jokeModel(data).save();
 
-              return bot.sendMessage(msg.message.chat.id, data.value + '\ntry again', ButtonOptions)
-            });
-          }
+            return bot.sendMessage(msg.message.chat.id, data.value + '\ntry again', ButtonOptions)
         });
         return
-      } catch (error) {
-        console.log(error)
       }
-          
       return bot.sendMessage(msg.message.chat.id,'I don`t understund you', ButtonOptions)
     })
   }
