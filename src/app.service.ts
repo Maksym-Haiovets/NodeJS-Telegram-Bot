@@ -50,18 +50,6 @@ bot.setMyCommands([
         return
       }
       /////////////////////
-      //history, show last 10 jokes
-      if(msg.data === '/historyyourjokes'){
-        const jokes = await this.jokeModel.find({TelegramUserID: msg.from.id}).limit(10).sort({_id: -1})
-
-        let ArrayHistory = '';
-        //concatenate all jokes in once string for response
-        for (let i = 0; i < jokes.length; i++){
-          ArrayHistory = ArrayHistory + `${i + 1} ` + jokes[i].value + '\n'
-        }
-        return await bot.sendMessage(msg.message.chat.id, ArrayHistory.toString(), ButtonOptions)
-      }
-      /////////////////////
       // generate buttons with categories
       if(msg.data === '/randomjokebycategory'){
         await this.httpService.get('https://api.chucknorris.io/jokes/categories')
@@ -69,8 +57,17 @@ bot.setMyCommands([
           const data = response.data// get array of all categories
           const inline_keyboard = []
   
-          for (let i = 0; i < data.length; i++){
-            inline_keyboard.push([{text: data[i], callback_data: `/${data[i]}`}])//
+          for (let i = 0; i < data.length; i += 2){
+            if(!data[i + 1]){
+              inline_keyboard.push([
+                {text: data[i], callback_data: `/${data[i]}`}
+              ])
+              return
+            }
+            inline_keyboard.push([
+              {text: data[i], callback_data: `/${data[i]}`},
+              {text: data[i + 1], callback_data: `/${data[i + 1]}`}
+            ])
           }
           // make buttons
           const CategoryOptions = {
@@ -96,6 +93,19 @@ bot.setMyCommands([
         });
         return
       }
+      /////////////////////
+      //history, show last 10 jokes
+      if(msg.data === '/historyyourjokes'){
+        const jokes = await this.jokeModel.find({TelegramUserID: msg.from.id}).limit(10).sort({_id: -1})
+
+        let ArrayHistory = '';
+        //concatenate all jokes in once string for response
+        for (let i = 0; i < jokes.length; i++){
+          ArrayHistory = ArrayHistory + `${i + 1} ` + jokes[i].value + '\n'
+        }
+        return await bot.sendMessage(msg.message.chat.id, ArrayHistory.toString(), ButtonOptions)
+      }
+
       return bot.sendMessage(msg.message.chat.id,'I don`t understund you', ButtonOptions)
     })
   }
